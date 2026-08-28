@@ -6,8 +6,10 @@ import os
 
 def publicar_en_facebook(page_access_token, page_id, mensaje, imagen_url="", link_comentario=""):
     """Publica un post en la Página de Facebook, opcionalmente con imagen"""
+    print(f"[Facebook] imagen_url: '{imagen_url}'")
     if imagen_url:
         return _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_comentario)
+    print("[Facebook] Sin imagen, publicando solo texto")
     return _publicar_texto(page_access_token, page_id, mensaje, link_comentario)
 
 
@@ -15,8 +17,10 @@ def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_c
     """Publica un post con imagen descargada"""
     tmp_path = None
     try:
+        print(f"[Facebook] Descargando imagen: {imagen_url}")
         img_resp = requests.get(imagen_url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
         img_resp.raise_for_status()
+        print(f"[Facebook] Imagen descargada, content-type: {img_resp.headers.get('content-type', 'N/A')}, tamano: {len(img_resp.content)} bytes")
 
         ext = ".jpg"
         if "png" in img_resp.headers.get("content-type", ""):
@@ -35,6 +39,7 @@ def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_c
             resp = requests.post(url, data=payload, files={"source": img_file}, timeout=30)
 
         result = resp.json()
+        print(f"[Facebook] Resultado photos: {result}")
 
         if "id" in result:
             post_id = result["id"]

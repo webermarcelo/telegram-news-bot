@@ -629,6 +629,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 fb_texto = fb_result["texto"]
 
                 imagen_noticia = item.get("imagen", "")
+                if not imagen_noticia:
+                    all_news = context.bot_data.get("all_news", {})
+                    for nid, n in all_news.items():
+                        if n.get("titulo") == item.get("titulo_original"):
+                            imagen_noticia = n.get("imagen", "")
+                            break
 
                 context.user_data["facebook_publish"] = {
                     "titulo": item["titulo_ia"],
@@ -636,13 +642,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "imagen": imagen_noticia,
                 }
 
+                img_info = f"\n(Con imagen adjunta)" if imagen_noticia else ""
                 await update.message.reply_text(
                     f"Publicado en tu web!\n\n"
                     f"Titulo: {item['titulo_ia']}\n\n"
                     f"La nota ya deberia estar visible en millennials.ar\n\n"
                     f"---\n\n"
                     f"Post para Facebook:\n\n"
-                    f"{fb_texto}\n\n"
+                    f"{fb_texto}{img_info}\n\n"
                     f"---\n\n"
                     f"Link generado: https://millennials.ar/noticias/{slugify(item['titulo_ia'])}/\n\n"
                     f"Publicar?"

@@ -6,10 +6,13 @@ import os
 
 def publicar_en_facebook(page_access_token, page_id, mensaje, imagen_url="", link_comentario=""):
     """Publica un post en la Página de Facebook, opcionalmente con imagen"""
-    print(f"[Facebook] imagen_url: '{imagen_url}'")
-    if imagen_url:
-        return _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_comentario)
-    print("[Facebook] Sin imagen, publicando solo texto")
+    print(f"[Facebook] imagen_url recibida: '{imagen_url}'")
+    if imagen_url and len(imagen_url) > 10:
+        print(f"[Facebook] Intentando publicar con imagen...")
+        resultado = _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_comentario)
+        print(f"[Facebook] Resultado con imagen: {resultado}")
+        return resultado
+    print("[Facebook] Sin imagen valida, publicando solo texto")
     return _publicar_texto(page_access_token, page_id, mensaje, link_comentario)
 
 

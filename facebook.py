@@ -1,8 +1,5 @@
 import requests
 import json
-import tempfile
-import os
-
 
 def publicar_en_facebook(page_access_token, page_id, mensaje, imagen_url="", link_comentario=""):
     """Publica un post en la Página de Facebook, opcionalmente con imagen"""
@@ -17,32 +14,17 @@ def publicar_en_facebook(page_access_token, page_id, mensaje, imagen_url="", lin
 
 
 def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_comentario=""):
-    """Publica un post con imagen descargada"""
-    tmp_path = None
+    """Publica un post con imagen usando el parámetro url de Facebook"""
     try:
-        print(f"[Facebook] Descargando imagen: {imagen_url}")
-        img_resp = requests.get(imagen_url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
-        img_resp.raise_for_status()
-        print(f"[Facebook] Imagen descargada, content-type: {img_resp.headers.get('content-type', 'N/A')}, tamano: {len(img_resp.content)} bytes")
-
-        ext = ".jpg"
-        if "png" in img_resp.headers.get("content-type", ""):
-            ext = ".png"
-
-        tmp_path = os.path.join(tempfile.gettempdir(), f"fb_post{ext}")
-        with open(tmp_path, "wb") as f:
-            f.write(img_resp.content)
-
         url = f"https://graph.facebook.com/v21.0/{page_id}/photos"
-        with open(tmp_path, "rb") as img_file:
-            payload = {
-                "message": mensaje,
-                "access_token": page_access_token,
-            }
-            resp = requests.post(url, data=payload, files={"source": img_file}, timeout=30)
-
+        payload = {
+            "message": mensaje,
+            "url": imagen_url,
+            "access_token": page_access_token,
+        }
+        resp = requests.post(url, data=payload, timeout=30)
         result = resp.json()
-        print(f"[Facebook] Resultado photos: {result}")
+        print(f"[Facebook] photos result: {result}")
 
         if "id" in result:
             post_id = result["id"]
@@ -57,9 +39,6 @@ def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_c
     except Exception as e:
         print(f"[Facebook] Error con imagen: {e}")
         return _publicar_texto(page_access_token, page_id, mensaje, link_comentario)
-    finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.remove(tmp_path)
 
 
 def _publicar_texto(page_access_token, page_id, mensaje, link_comentario=""):

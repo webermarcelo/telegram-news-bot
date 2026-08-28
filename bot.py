@@ -116,31 +116,20 @@ def scrape_vandal():
     try:
         resp = requests.get("https://vandal.elespanol.com/noticias", headers=HEADERS, timeout=15)
         soup = BeautifulSoup(resp.text, "html.parser")
-        for article in soup.select("article.noticia, div.noticia, .news-item, .article-card")[:10]:
-            title_tag = article.select_one("h2, h3, .title, a")
-            link_tag = article.select_one("a[href]")
-            desc_tag = article.select_one("p, .description, .excerpt, .summary")
-            date_tag = article.select_one("time, .date, .time, span[class*='date']")
-            if title_tag and link_tag:
-                title = title_tag.get_text(strip=True)
-                url = link_tag.get("href", "")
-                if not url.startswith("http"):
-                    url = "https://vandal.elespanol.com" + url
-                resumen = desc_tag.get_text(strip=True)[:200] if desc_tag else ""
-                fecha = ""
-                if date_tag:
-                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = find_nearby_image(article)
-                noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": resumen, "fecha": fecha, "imagen": imagen})
-        if not noticias:
-            for a in soup.select("a[href*='/noticias/']")[:10]:
-                title = a.get_text(strip=True)
-                url = a.get("href", "")
-                if title and len(title) > 15:
-                    if not url.startswith("http"):
-                        url = "https://vandal.elespanol.com" + url
-                    imagen = find_nearby_image(a)
-                    noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": "", "fecha": "", "imagen": imagen})
+        container = soup.select_one("#pestana_noticias")
+        if not container:
+            container = soup
+        for a in container.select("a[href*='/noticia/']")[:15]:
+            url = a.get("href", "")
+            if not url.startswith("http"):
+                url = "https://vandal.elespanol.com" + url
+            title = a.get_text(strip=True)
+            img = a.select_one("img")
+            imagen = ""
+            if img:
+                imagen = img.get("src", "") or img.get("data-src", "")
+            if title and len(title) > 10:
+                noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": "", "fecha": "", "imagen": imagen})
     except Exception as e:
         print(f"[Vandal] Error: {e}")
     return noticias
@@ -223,25 +212,21 @@ def scrape_3djuegos():
 def scrape_ign():
     noticias = []
     try:
-        resp = requests.get("https://latam.ign.com/noticias", headers=HEADERS, timeout=15)
+        resp = requests.get("https://www.ign.com/articles", headers=HEADERS, timeout=15)
         soup = BeautifulSoup(resp.text, "html.parser")
-        for article in soup.select("article, .article-item, div[class*='article']")[:10]:
-            link_tag = article.select_one("a[href*='noticias']") if article.name != "a" else article
-            title_tag = article.select_one("h2, h3, .title, span")
-            desc_tag = article.select_one("p, .description, .excerpt")
-            date_tag = article.select_one("time, .date, span[class*='date']")
-            if link_tag:
-                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
-                url = link_tag.get("href", "")
-                if not url.startswith("http"):
-                    url = "https://latam.ign.com" + url
-                resumen = desc_tag.get_text(strip=True)[:200] if desc_tag else ""
-                fecha = ""
-                if date_tag:
-                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = find_nearby_image(article)
-                if title and len(title) > 10:
-                    noticias.append({"titulo": title, "url": url, "fuente": "IGN", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+        for a in soup.select("a[href*='/articles/']")[:15]:
+            url = a.get("href", "")
+            if not url.startswith("http"):
+                url = "https://www.ign.com" + url
+            title = a.get_text(strip=True)
+            img = a.select_one("img")
+            imagen = ""
+            if img:
+                imagen = img.get("src", "") or img.get("data-src", "")
+                if imagen and not imagen.startswith("http"):
+                    imagen = "https://www.ign.com" + imagen
+            if title and len(title) > 10:
+                noticias.append({"titulo": title, "url": url, "fuente": "IGN", "resumen": "", "fecha": "", "imagen": imagen})
     except Exception as e:
         print(f"[IGN] Error: {e}")
     return noticias

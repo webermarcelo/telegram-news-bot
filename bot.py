@@ -82,6 +82,8 @@ def find_nearby_image(tag):
                 return src
         parent = parent.parent
     return ""
+
+def make_id(title, url):
     raw = f"{title}|{url}"
     return hashlib.md5(raw.encode()).hexdigest()
 

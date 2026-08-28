@@ -12,7 +12,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 from gemini import redactar_con_ia, generar_post_facebook
 from sheets import publicar_en_sheet
-from facebook import publicar_en_facebook
+from facebook import publicar_en_facebook, buscar_imagen_og
 
 # Fix Windows encoding
 if sys.platform == "win32":
@@ -551,12 +551,29 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         imagen_url = fb_data.get("imagen", "")
+        print(f"[Bot] fb_publicar imagen from fb_data: '{imagen_url}'", flush=True)
+
         if not imagen_url:
             all_news = context.bot_data.get("all_news", {})
             for nid, n in all_news.items():
                 if n.get("titulo") == fb_data.get("titulo"):
                     imagen_url = n.get("imagen", "")
+                    print(f"[Bot] imagen from all_news: '{imagen_url}'", flush=True)
                     break
+
+        if not imagen_url:
+            url_original = fb_data.get("url_original", "")
+            if not url_original:
+                pending = load_pending()
+                for pid, item in pending.items():
+                    if item.get("titulo_ia") == fb_data.get("titulo"):
+                        url_original = item.get("url_original", "")
+                        break
+            if url_original:
+                print(f"[Bot] Buscando og:image de: {url_original}", flush=True)
+                imagen_url = buscar_imagen_og(url_original)
+
+        print(f"[Bot] imagen_url final para Facebook: '{imagen_url}'", flush=True)
 
         config = load_config()
         resultado = publicar_en_facebook(
@@ -629,6 +646,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "titulo": item["titulo_ia"],
                     "texto": fb_texto,
                     "imagen": imagen_noticia,
+                    "url_original": item.get("url_original", ""),
                 }
 
                 img_info = f"\n(Con imagen adjunta)" if imagen_noticia else ""

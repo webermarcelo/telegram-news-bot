@@ -1,20 +1,36 @@
 import requests
-import json
+from bs4 import BeautifulSoup
+
 
 def publicar_en_facebook(page_access_token, page_id, mensaje, imagen_url="", link_comentario=""):
     """Publica un post en la Página de Facebook, opcionalmente con imagen"""
-    print(f"[Facebook] imagen_url recibida: '{imagen_url}'")
+    print(f"[Facebook] imagen_url recibida: '{imagen_url}'", flush=True)
     if imagen_url and len(imagen_url) > 10:
-        print(f"[Facebook] Intentando publicar con imagen...")
+        print(f"[Facebook] Publicando con imagen...", flush=True)
         resultado = _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_comentario)
-        print(f"[Facebook] Resultado con imagen: {resultado}")
+        print(f"[Facebook] Resultado: {resultado}", flush=True)
         return resultado
-    print("[Facebook] Sin imagen valida, publicando solo texto")
+    print("[Facebook] Sin imagen, publicando solo texto", flush=True)
     return _publicar_texto(page_access_token, page_id, mensaje, link_comentario)
 
 
+def buscar_imagen_og(url_noticia):
+    """Busca og:image en la URL original de la noticia como fallback"""
+    try:
+        resp = requests.get(url_noticia, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        if resp.status_code == 200:
+            soup = BeautifulSoup(resp.text, "html.parser")
+            og = soup.select_one("meta[property='og:image']")
+            if og and og.get("content"):
+                print(f"[Facebook] og:image encontrada: {og['content'][:80]}", flush=True)
+                return og["content"]
+    except Exception as e:
+        print(f"[Facebook] Error buscan og:image: {e}", flush=True)
+    return ""
+
+
 def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_comentario=""):
-    """Publica un post con imagen usando el parámetro url de Facebook"""
+    """Publica un post con imagen usando el parametro url de Facebook"""
     try:
         url = f"https://graph.facebook.com/v21.0/{page_id}/photos"
         payload = {
@@ -24,7 +40,7 @@ def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_c
         }
         resp = requests.post(url, data=payload, timeout=30)
         result = resp.json()
-        print(f"[Facebook] photos result: {result}")
+        print(f"[Facebook] photos response: {result}", flush=True)
 
         if "id" in result:
             post_id = result["id"]
@@ -34,10 +50,11 @@ def _publicar_con_imagen(page_access_token, page_id, mensaje, imagen_url, link_c
             return {"exito": True, "post_id": post_id, "url": post_url}
         else:
             error_msg = result.get("error", {}).get("message", "Error desconocido")
+            print(f"[Facebook] API error: {error_msg}", flush=True)
             return {"exito": False, "error": error_msg}
 
     except Exception as e:
-        print(f"[Facebook] Error con imagen: {e}")
+        print(f"[Facebook] Excepcion con imagen: {e}", flush=True)
         return _publicar_texto(page_access_token, page_id, mensaje, link_comentario)
 
 
@@ -65,7 +82,7 @@ def _publicar_texto(page_access_token, page_id, mensaje, link_comentario=""):
             return {"exito": False, "error": error_msg}
 
     except Exception as e:
-        print(f"[Facebook] Error: {e}")
+        print(f"[Facebook] Error: {e}", flush=True)
         return {"exito": False, "error": str(e)}
 
 
@@ -83,5 +100,5 @@ def commentar_en_post(page_access_token, post_id, mensaje):
         result = resp.json()
         return "id" in result
     except Exception as e:
-        print(f"[Facebook] Error comment: {e}")
+        print(f"[Facebook] Error comment: {e}", flush=True)
         return False

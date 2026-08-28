@@ -10,8 +10,6 @@ def publicar_en_facebook(page_access_token, page_id, mensaje, link=""):
         "message": mensaje,
         "access_token": page_access_token,
     }
-    if link:
-        payload["link"] = link
 
     try:
         resp = requests.post(url, data=payload, timeout=15)
@@ -20,6 +18,10 @@ def publicar_en_facebook(page_access_token, page_id, mensaje, link=""):
         if "id" in result:
             post_id = result["id"]
             post_url = f"https://facebook.com/{post_id.replace('_', '/posts/')}"
+
+            if link:
+                commentar_en_post(page_access_token, post_id, link)
+
             return {"exito": True, "post_id": post_id, "url": post_url}
         else:
             error_msg = result.get("error", {}).get("message", "Error desconocido")
@@ -28,3 +30,21 @@ def publicar_en_facebook(page_access_token, page_id, mensaje, link=""):
     except Exception as e:
         print(f"[Facebook] Error: {e}")
         return {"exito": False, "error": str(e)}
+
+
+def commentar_en_post(page_access_token, post_id, mensaje):
+    """Publica un comentario en un post de Facebook"""
+    url = f"https://graph.facebook.com/v21.0/{post_id}/comments"
+
+    payload = {
+        "message": mensaje,
+        "access_token": page_access_token,
+    }
+
+    try:
+        resp = requests.post(url, data=payload, timeout=15)
+        result = resp.json()
+        return "id" in result
+    except Exception as e:
+        print(f"[Facebook] Error comment: {e}")
+        return False

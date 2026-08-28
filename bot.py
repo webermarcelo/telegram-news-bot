@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-from gemini import redactar_con_ia
+from gemini import redactar_con_ia, generar_post_facebook
 from sheets import publicar_en_sheet
 from facebook import publicar_en_facebook
 
@@ -569,9 +569,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if resultado["exito"]:
             fb_token = config.get("facebook_page_token", "")
             if fb_token:
-                fb_texto = item["texto_ia"]
-                if len(fb_texto) > 500:
-                    fb_texto = fb_texto[:500] + "..."
+                fb_result = generar_post_facebook(
+                    api_key=config["gemini_api_key"],
+                    titulo=item["titulo_ia"],
+                    resumen=item.get("resumen", ""),
+                )
+                fb_texto = fb_result["texto"]
 
                 context.user_data["facebook_publish"] = {
                     "titulo": item["titulo_ia"],

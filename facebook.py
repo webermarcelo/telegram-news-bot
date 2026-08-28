@@ -6,6 +6,10 @@ def publicar_en_facebook(page_access_token, page_id, mensaje, link=""):
     """Publica un post en la Página de Facebook"""
     url = f"https://graph.facebook.com/v21.0/{page_id}/feed"
 
+    print(f"[Facebook] Page ID: {page_id}")
+    print(f"[Facebook] Token length: {len(page_access_token)}")
+    print(f"[Facebook] Token start: {page_access_token[:20]}...")
+
     payload = {
         "message": mensaje,
         "access_token": page_access_token,
@@ -14,6 +18,8 @@ def publicar_en_facebook(page_access_token, page_id, mensaje, link=""):
     try:
         resp = requests.post(url, data=payload, timeout=15)
         result = resp.json()
+
+        print(f"[Facebook] Response: {result}")
 
         if "id" in result:
             post_id = result["id"]

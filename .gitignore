@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+config.json
+seen_news.json
+pending_news.json
+iniciar_bot.bat
+.env
+*.log

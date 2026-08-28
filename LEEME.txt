@@ -1,0 +1,60 @@
+# 🤖 Bot de Noticias Gaming para Telegram
+
+## Configuracion en 3 pasos
+
+### PASO 1: Crear tu bot en Telegram
+
+1. Abre Telegram y busca **@BotFather**
+2. Envia el comando `/newbot`
+3. Ponele un nombre (ej: "Noticias Gaming Bot")
+4. Ponele un username (ej: "noticias_gaming_weber_bot")
+5. **BotFather te va a dar un TOKEN** - Copialo
+
+### PASO 2: Obtener tu Chat ID
+
+1. Abre Telegram y busca **@userinfobot**
+2. Envia `/start`
+3. Te va a dar tu **Chat ID** (un numero como 123456789)
+
+### PASO 3: Configurar el bot
+
+Abre el archivo `config.json` y pega los datos:
+
+```json
+{
+  "telegram_token": "PEG_AHI_EL_TOKEN_DE_BOTFATHER",
+  "telegram_chat_id": "123456789",
+  "intervalo_minutos": 30,
+  "fuentes_activas": ["Vandal", "TimeExtension", "Eurogamer", "3DJuegos", "IGN"]
+}
+```
+
+## Como ejecutar
+
+### Opcion 1: Doble clic
+Ejecuta `iniciar_bot.bat`
+
+### Opcion 2: Terminal
+```
+cd C:\Users\weber\OneDrive\Documentos\telegram-news-bot
+python bot.py
+```
+
+## Fuentes de noticias
+
+| Fuente | URL | Estado |
+|--------|-----|--------|
+| Vandal | vandal.elespanol.com | ✅ |
+| TimeExtension | timeextension.com | ✅ |
+| Eurogamer | eurogamer.es | ✅ |
+| 3DJuegos | 3djuegos.com | ✅ |
+| IGN Latam | latam.ign.com | ✅ |
+
+## Configuracion
+
+- **intervalo_minutos**: Cada cuanto revisa noticias (default: 30)
+- **fuentes_activas**: Que paginas scrapear (podes quitar las que no quieras)
+
+## Noticias guardadas
+
+Las noticias ya enviadas se guardan en `seen_news.json` para no repetir.

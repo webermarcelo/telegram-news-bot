@@ -467,6 +467,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         seen = load_seen(context)
 
         if nid not in seen:
+            all_news = context.bot_data.get("all_news", {})
+            if nid in all_news:
+                seen[nid] = all_news[nid]
+
+        if nid not in seen:
             await query.edit_message_reply_markup(reply_markup=None)
             await context.bot.send_message(chat_id=chat_id, text="Noticia no encontrada.")
             return
@@ -774,14 +779,18 @@ async def periodic_check(app: Application):
                         )
                         total_nuevas += 1
 
-                        seen[nid] = {
-                            "titulo": noticia["titulo"],
-                            "fuente": noticia["fuente"],
-                            "url": noticia["url"],
-                            "resumen": noticia.get("resumen", ""),
-                            "fecha": noticia.get("fecha", ""),
-                        }
-                        time.sleep(1)
+                    seen[nid] = {
+                        "titulo": noticia["titulo"],
+                        "fuente": noticia["fuente"],
+                        "url": noticia["url"],
+                        "resumen": noticia.get("resumen", ""),
+                        "fecha": noticia.get("fecha", ""),
+                        "imagen": noticia.get("imagen", ""),
+                    }
+                    if "all_news" not in app.bot_data:
+                        app.bot_data["all_news"] = {}
+                    app.bot_data["all_news"][nid] = seen[nid]
+                    time.sleep(1)
             except Exception as e:
                 print(f"Error {nombre}: {e}")
 

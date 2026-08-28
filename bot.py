@@ -496,6 +496,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "titulo_original": noticia["titulo"],
             "fuente": noticia.get("fuente", ""),
             "url_original": noticia.get("url", ""),
+            "imagen": noticia.get("imagen", ""),
         }
         save_pending(pending)
 

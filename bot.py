@@ -44,15 +44,22 @@ def load_config():
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
-def load_seen():
+def load_seen(context=None):
+    if context and "seen" in context.bot_data:
+        return context.bot_data["seen"]
     if os.path.exists(SEEN_FILE):
         with open(SEEN_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            if context:
+                context.bot_data["seen"] = data
+            return data
     return {}
 
-def save_seen(seen):
+def save_seen(seen, context=None):
     with open(SEEN_FILE, "w", encoding="utf-8") as f:
         json.dump(seen, f, ensure_ascii=False, indent=2)
+    if context:
+        context.bot_data["seen"] = seen
 
 def load_pending():
     if os.path.exists(PENDING_FILE):
@@ -278,7 +285,7 @@ async def cmd_buscar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_noticias(update: Update, context: ContextTypes.DEFAULT_TYPE):
     config = load_config()
-    seen = load_seen()
+    seen = load_seen(context)
     chat_id = update.effective_chat.id
 
     await update.message.reply_text("Buscando noticias...")
@@ -338,14 +345,14 @@ async def cmd_noticias(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             print(f"Error {nombre}: {e}")
 
-    save_seen(seen)
+    save_seen(seen, context)
     if total_nuevas == 0:
         await update.message.reply_text("No hay noticias nuevas por el momento.")
     else:
         await update.message.reply_text(f"Se encontraron {total_nuevas} noticias nuevas.")
 
 async def cmd_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    seen = load_seen()
+    seen = load_seen(context)
     pending = load_pending()
     await update.message.reply_text(
         f"Estadisticas:\n\n"
@@ -445,7 +452,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 print(f"Error {nombre}: {e}")
 
-        save_seen(seen)
+        save_seen(seen, context)
         if total == 0:
             await context.bot.send_message(chat_id=chat_id, text="No se encontraron noticias en ese rango de tiempo.")
         else:
@@ -457,7 +464,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data.startswith("redactar:"):
         nid = data.split(":", 1)[1]
-        seen = load_seen()
+        seen = load_seen(context)
 
         if nid not in seen:
             await query.edit_message_reply_markup(reply_markup=None)
@@ -720,7 +727,7 @@ async def periodic_check(app: Application):
     while True:
         await asyncio.sleep(intervalo * 60)
 
-        seen = load_seen()
+        seen = load_seen(app)
         activas = config.get("fuentes_activas", list(SCRAPERS.keys()))
         total_nuevas = 0
 
@@ -778,7 +785,7 @@ async def periodic_check(app: Application):
             except Exception as e:
                 print(f"Error {nombre}: {e}")
 
-        save_seen(seen)
+        save_seen(seen, app)
         if total_nuevas > 0:
             print(f"  Nuevas: {total_nuevas}")
 

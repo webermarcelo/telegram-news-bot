@@ -134,29 +134,25 @@ def scrape_vandal():
         print(f"[Vandal] Error: {e}")
     return noticias
 
-def scrape_timeextension():
+def scrape_tierragamer():
     noticias = []
     try:
-        resp = requests.get("https://www.timeextension.com/news", headers=HEADERS, timeout=15)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        for article in soup.select("article, .article-item, .news-item")[:10]:
-            title_tag = article.select_one("h2, h3, .title, a")
-            link_tag = article.select_one("a[href]")
-            desc_tag = article.select_one("p, .description, .excerpt, .summary")
-            date_tag = article.select_one("time, .date, span[class*='date']")
-            if title_tag and link_tag:
-                title = title_tag.get_text(strip=True)
-                url = link_tag.get("href", "")
-                if not url.startswith("http"):
-                    url = "https://www.timeextension.com" + url
-                resumen = desc_tag.get_text(strip=True)[:200] if desc_tag else ""
-                fecha = ""
-                if date_tag:
-                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = find_nearby_image(article)
-                noticias.append({"titulo": title, "url": url, "fuente": "TimeExtension", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+        resp = requests.get(
+            "https://tierragamer.com/wp-json/wp/v2/posts?categories=5&per_page=10&_embed",
+            headers=HEADERS, timeout=15
+        )
+        if resp.status_code == 200:
+            for post in resp.json():
+                title = post.get("title", {}).get("rendered", "")
+                link = post.get("link", "")
+                media = post.get("_embedded", {}).get("wp:featuredmedia", [])
+                imagen = media[0].get("source_url", "") if media else ""
+                import html as html_mod
+                title = html_mod.unescape(title)
+                if title:
+                    noticias.append({"titulo": title, "url": link, "fuente": "TierraGamer", "resumen": "", "fecha": "", "imagen": imagen})
     except Exception as e:
-        print(f"[TimeExtension] Error: {e}")
+        print(f"[TierraGamer] Error: {e}")
     return noticias
 
 def scrape_eurogamer():
@@ -233,10 +229,10 @@ def scrape_ign():
 
 SCRAPERS = {
     "Vandal": scrape_vandal,
-    "TimeExtension": scrape_timeextension,
     "Eurogamer": scrape_eurogamer,
     "3DJuegos": scrape_3djuegos,
     "IGN": scrape_ign,
+    "TierraGamer": scrape_tierragamer,
 }
 
 # ==================== HANDLERS DEL BOT ====================

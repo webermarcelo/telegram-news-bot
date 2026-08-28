@@ -12,6 +12,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Mess
 
 from gemini import redactar_con_ia
 from sheets import publicar_en_sheet
+from facebook import publicar_en_facebook
 
 # Fix Windows encoding
 if sys.platform == "win32":
@@ -35,6 +36,10 @@ def load_config():
             "apps_script_url": os.environ["APPS_SCRIPT_URL"],
             "intervalo_minutos": int(os.environ.get("INTERVALO_MINUTOS", "30")),
             "fuentes_activas": fuentes,
+            "facebook_app_id": os.environ.get("FACEBOOK_APP_ID", ""),
+            "facebook_app_secret": os.environ.get("FACEBOOK_APP_SECRET", ""),
+            "facebook_page_token": os.environ.get("FACEBOOK_PAGE_TOKEN", ""),
+            "facebook_page_id": os.environ.get("FACEBOOK_PAGE_ID", ""),
         }
     with open(CONFIG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
@@ -506,6 +511,38 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_reply_markup(reply_markup=None)
         await context.bot.send_message(chat_id=chat_id, text="Publicacion cancelada.")
 
+    elif data == "fb_publicar":
+        await query.edit_message_reply_markup(reply_markup=None)
+        fb_data = context.user_data.pop("facebook_publish", None)
+
+        if not fb_data:
+            await context.bot.send_message(chat_id=chat_id, text="Error: datos de Facebook no encontrados.")
+            return
+
+        config = load_config()
+        resultado = publicar_en_facebook(
+            page_access_token=config["facebook_page_token"],
+            page_id=config["facebook_page_id"],
+            mensaje=fb_data["texto"],
+            link=fb_data["url_original"],
+        )
+
+        if resultado["exito"]:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"Publicado en Facebook!\n\n{resultado['url']}"
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"Error al publicar en Facebook: {resultado.get('error', 'desconocido')}"
+            )
+
+    elif data == "fb_cancelar":
+        await query.edit_message_reply_markup(reply_markup=None)
+        context.user_data.pop("facebook_publish", None)
+        await context.bot.send_message(chat_id=chat_id, text="Publicacion en Facebook cancelada.")
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     chat_id = update.effective_chat.id
@@ -530,11 +567,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         if resultado["exito"]:
-            await update.message.reply_text(
-                f"Publicado en tu web!\n\n"
-                f"Titulo: {item['titulo_ia']}\n\n"
-                f"La nota ya deberia estar visible en millennials.ar"
-            )
+            fb_token = config.get("facebook_page_token", "")
+            if fb_token:
+                fb_texto = item["texto_ia"]
+                if len(fb_texto) > 500:
+                    fb_texto = fb_texto[:500] + "..."
+
+                context.user_data["facebook_publish"] = {
+                    "titulo": item["titulo_ia"],
+                    "texto": fb_texto,
+                    "url_original": item.get("url_original", ""),
+                }
+
+                keyboard = [
+                    [
+                        InlineKeyboardButton("Publicar en Facebook", callback_data="fb_publicar"),
+                        InlineKeyboardButton("Cancelar", callback_data="fb_cancelar"),
+                    ],
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+
+                msg = (
+                    f"Publicado en tu web!\n\n"
+                    f"Titulo: {item['titulo_ia']}\n\n"
+                    f"La nota ya deberia estar visible en millennials.ar\n\n"
+                    f"---\n\n"
+                    f"Post para Facebook:\n\n"
+                    f"{fb_texto}"
+                )
+                await update.message.reply_text(msg, reply_markup=reply_markup)
+            else:
+                await update.message.reply_text(
+                    f"Publicado en tu web!\n\n"
+                    f"Titulo: {item['titulo_ia']}\n\n"
+                    f"La nota ya deberia estar visible en millennials.ar"
+                )
         else:
             await update.message.reply_text(f"Error al publicar: {resultado.get('error', 'desconocido')}")
 

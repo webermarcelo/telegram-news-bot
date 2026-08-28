@@ -84,6 +84,7 @@ def scrape_vandal():
             link_tag = article.select_one("a[href]")
             desc_tag = article.select_one("p, .description, .excerpt, .summary")
             date_tag = article.select_one("time, .date, .time, span[class*='date']")
+            img_tag = article.select_one("img[src]")
             if title_tag and link_tag:
                 title = title_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -93,7 +94,12 @@ def scrape_vandal():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": resumen, "fecha": fecha})
+                imagen = ""
+                if img_tag:
+                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
+                    if imagen and not imagen.startswith("http"):
+                        imagen = "https://vandal.elespanol.com" + imagen
+                noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": resumen, "fecha": fecha, "imagen": imagen})
         if not noticias:
             for a in soup.select("a[href*='/noticias/']")[:10]:
                 title = a.get_text(strip=True)
@@ -101,7 +107,7 @@ def scrape_vandal():
                 if title and len(title) > 15:
                     if not url.startswith("http"):
                         url = "https://vandal.elespanol.com" + url
-                    noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": "", "fecha": ""})
+                    noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": "", "fecha": "", "imagen": ""})
     except Exception as e:
         print(f"[Vandal] Error: {e}")
     return noticias
@@ -116,6 +122,7 @@ def scrape_timeextension():
             link_tag = article.select_one("a[href]")
             desc_tag = article.select_one("p, .description, .excerpt, .summary")
             date_tag = article.select_one("time, .date, span[class*='date']")
+            img_tag = article.select_one("img[src]")
             if title_tag and link_tag:
                 title = title_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -125,7 +132,12 @@ def scrape_timeextension():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                noticias.append({"titulo": title, "url": url, "fuente": "TimeExtension", "resumen": resumen, "fecha": fecha})
+                imagen = ""
+                if img_tag:
+                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
+                    if imagen and not imagen.startswith("http"):
+                        imagen = "https://www.timeextension.com" + imagen
+                noticias.append({"titulo": title, "url": url, "fuente": "TimeExtension", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
         print(f"[TimeExtension] Error: {e}")
     return noticias
@@ -139,6 +151,7 @@ def scrape_eurogamer():
             title_tag = article.select_one("h2.archive__title a")
             desc_tag = article.select_one("div.archive__strapline")
             date_tag = article.select_one("time.archive__date")
+            img_tag = article.select_one("img[src]")
             if title_tag:
                 title = title_tag.get_text(strip=True)
                 url = title_tag.get("href", "")
@@ -148,7 +161,12 @@ def scrape_eurogamer():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                noticias.append({"titulo": title, "url": url, "fuente": "Eurogamer", "resumen": resumen, "fecha": fecha})
+                imagen = ""
+                if img_tag:
+                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
+                    if imagen and not imagen.startswith("http"):
+                        imagen = "https://www.eurogamer.es" + imagen
+                noticias.append({"titulo": title, "url": url, "fuente": "Eurogamer", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
         print(f"[Eurogamer] Error: {e}")
     return noticias
@@ -163,6 +181,7 @@ def scrape_3djuegos():
             title_tag = article.select_one("h2, h3, .title")
             desc_tag = article.select_one("p, .description, .excerpt")
             date_tag = article.select_one("time, .date, span[class*='date']")
+            img_tag = article.select_one("img[src]")
             if link_tag:
                 title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -172,8 +191,13 @@ def scrape_3djuegos():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = ""
+                if img_tag:
+                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
+                    if imagen and not imagen.startswith("http"):
+                        imagen = "https://www.3djuegos.com" + imagen
                 if title and len(title) > 10:
-                    noticias.append({"titulo": title, "url": url, "fuente": "3DJuegos", "resumen": resumen, "fecha": fecha})
+                    noticias.append({"titulo": title, "url": url, "fuente": "3DJuegos", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
         print(f"[3DJuegos] Error: {e}")
     return noticias
@@ -188,6 +212,7 @@ def scrape_ign():
             title_tag = article.select_one("h2, h3, .title, span")
             desc_tag = article.select_one("p, .description, .excerpt")
             date_tag = article.select_one("time, .date, span[class*='date']")
+            img_tag = article.select_one("img[src]")
             if link_tag:
                 title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -197,8 +222,13 @@ def scrape_ign():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = ""
+                if img_tag:
+                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
+                    if imagen and not imagen.startswith("http"):
+                        imagen = "https://latam.ign.com" + imagen
                 if title and len(title) > 10:
-                    noticias.append({"titulo": title, "url": url, "fuente": "IGN", "resumen": resumen, "fecha": fecha})
+                    noticias.append({"titulo": title, "url": url, "fuente": "IGN", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
         print(f"[IGN] Error: {e}")
     return noticias
@@ -514,6 +544,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "fb_publicar":
         await query.edit_message_reply_markup(reply_markup=None)
         fb_data = context.user_data.pop("facebook_publish", None)
+        link_millennials = context.user_data.pop("pending_link", None)
 
         if not fb_data:
             await context.bot.send_message(chat_id=chat_id, text="Error: datos de Facebook no encontrados.")
@@ -524,7 +555,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             page_access_token=config["facebook_page_token"],
             page_id=config["facebook_page_id"],
             mensaje=fb_data["texto"],
-            link=fb_data["url_original"],
+            imagen_url=fb_data.get("imagen", ""),
+            link_comentario=link_millennials or "",
         )
 
         if resultado["exito"]:
@@ -541,6 +573,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "fb_cancelar":
         await query.edit_message_reply_markup(reply_markup=None)
         context.user_data.pop("facebook_publish", None)
+        context.user_data.pop("pending_link", None)
         await context.bot.send_message(chat_id=chat_id, text="Publicacion en Facebook cancelada.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -576,29 +609,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 )
                 fb_texto = fb_result["texto"]
 
+                imagen_noticia = item.get("imagen", "")
+
                 context.user_data["facebook_publish"] = {
                     "titulo": item["titulo_ia"],
                     "texto": fb_texto,
-                    "url_original": item.get("url_original", ""),
+                    "imagen": imagen_noticia,
                 }
 
-                keyboard = [
-                    [
-                        InlineKeyboardButton("Publicar en Facebook", callback_data="fb_publicar"),
-                        InlineKeyboardButton("Cancelar", callback_data="fb_cancelar"),
-                    ],
-                ]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-
-                msg = (
+                await update.message.reply_text(
                     f"Publicado en tu web!\n\n"
                     f"Titulo: {item['titulo_ia']}\n\n"
                     f"La nota ya deberia estar visible en millennials.ar\n\n"
                     f"---\n\n"
                     f"Post para Facebook:\n\n"
-                    f"{fb_texto}"
+                    f"{fb_texto}\n\n"
+                    f"---\n\n"
+                    f"Enviame el link de la nota en millennials.ar para ponerlo en el primer comentario."
                 )
-                await update.message.reply_text(msg, reply_markup=reply_markup)
             else:
                 await update.message.reply_text(
                     f"Publicado en tu web!\n\n"
@@ -642,6 +670,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"VISTA PREVIA (titulo editado):\n\n"
             f"Titulo: {text}\n\n"
             f"{texto_preview}"
+        )
+        await update.message.reply_text(msg, reply_markup=reply_markup)
+
+    elif "facebook_publish" in context.user_data and "pending_link" not in context.user_data:
+        context.user_data["pending_link"] = text
+        fb_data = context.user_data["facebook_publish"]
+
+        keyboard = [
+            [
+                InlineKeyboardButton("Publicar en Facebook", callback_data="fb_publicar"),
+                InlineKeyboardButton("Cancelar", callback_data="fb_cancelar"),
+            ],
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        imagen_info = ""
+        if fb_data.get("imagen"):
+            imagen_info = "\n(Se publica con imagen adjunta)"
+
+        msg = (
+            f"Vista previa del post de Facebook:\n\n"
+            f"{fb_data['texto']}\n\n"
+            f"---\n"
+            f"Link en comentario: {text}\n"
+            f"{imagen_info}\n\n"
+            f"Publicar?"
         )
         await update.message.reply_text(msg, reply_markup=reply_markup)
 

@@ -68,6 +68,17 @@ def make_id(title, url):
     raw = f"{title}|{url}"
     return hashlib.md5(raw.encode()).hexdigest()
 
+def slugify(text):
+    import unicodedata
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
+    text = text.lower()
+    text = text.replace(" ", "-")
+    text = "".join(c for c in text if c.isalnum() or c == "-")
+    while "--" in text:
+        text = text.replace("--", "-")
+    return text.strip("-")
+
 # ==================== SCRAPERS ====================
 
 HEADERS = {
@@ -625,7 +636,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     f"Post para Facebook:\n\n"
                     f"{fb_texto}\n\n"
                     f"---\n\n"
-                    f"Enviame el link de la nota en millennials.ar para ponerlo en el primer comentario."
+                    f"Link generado: https://millennials.ar/noticias/{slugify(item['titulo_ia'])}/\n\n"
+                    f"Publicar?"
                 )
             else:
                 await update.message.reply_text(
@@ -674,8 +686,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, reply_markup=reply_markup)
 
     elif "facebook_publish" in context.user_data and "pending_link" not in context.user_data:
-        context.user_data["pending_link"] = text
         fb_data = context.user_data["facebook_publish"]
+        slug = slugify(fb_data["titulo"])
+        link_millennials = f"https://millennials.ar/noticias/{slug}/"
+
+        context.user_data["pending_link"] = link_millennials
 
         keyboard = [
             [
@@ -692,9 +707,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = (
             f"Vista previa del post de Facebook:\n\n"
             f"{fb_data['texto']}\n\n"
-            f"---\n"
-            f"Link en comentario: {text}\n"
-            f"{imagen_info}\n\n"
+            f"---"
+            f"{imagen_info}\n"
+            f"\nLink en comentario: {link_millennials}\n\n"
             f"Publicar?"
         )
         await update.message.reply_text(msg, reply_markup=reply_markup)

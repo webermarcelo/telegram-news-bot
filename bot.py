@@ -64,7 +64,24 @@ def save_pending(pending):
     with open(PENDING_FILE, "w", encoding="utf-8") as f:
         json.dump(pending, f, ensure_ascii=False, indent=2)
 
-def make_id(title, url):
+def find_nearby_image(tag):
+    """Busca una imagen en el tag o en sus padres cercanos"""
+    img = tag.select_one("img[src]")
+    if img:
+        src = img.get("src", "") or img.get("data-src", "")
+        if src and "scorecardresearch" not in src and "pixel" not in src and len(src) > 10:
+            return src
+    parent = tag.parent
+    for _ in range(4):
+        if not parent:
+            break
+        img = parent.select_one("img[src]")
+        if img:
+            src = img.get("src", "") or img.get("data-src", "")
+            if src and "scorecardresearch" not in src and "pixel" not in src and len(src) > 10:
+                return src
+        parent = parent.parent
+    return ""
     raw = f"{title}|{url}"
     return hashlib.md5(raw.encode()).hexdigest()
 
@@ -95,7 +112,6 @@ def scrape_vandal():
             link_tag = article.select_one("a[href]")
             desc_tag = article.select_one("p, .description, .excerpt, .summary")
             date_tag = article.select_one("time, .date, .time, span[class*='date']")
-            img_tag = article.select_one("img[src]")
             if title_tag and link_tag:
                 title = title_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -105,11 +121,7 @@ def scrape_vandal():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = ""
-                if img_tag:
-                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
-                    if imagen and not imagen.startswith("http"):
-                        imagen = "https://vandal.elespanol.com" + imagen
+                imagen = find_nearby_image(article)
                 noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": resumen, "fecha": fecha, "imagen": imagen})
         if not noticias:
             for a in soup.select("a[href*='/noticias/']")[:10]:
@@ -118,7 +130,8 @@ def scrape_vandal():
                 if title and len(title) > 15:
                     if not url.startswith("http"):
                         url = "https://vandal.elespanol.com" + url
-                    noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": "", "fecha": "", "imagen": ""})
+                    imagen = find_nearby_image(a)
+                    noticias.append({"titulo": title, "url": url, "fuente": "Vandal", "resumen": "", "fecha": "", "imagen": imagen})
     except Exception as e:
         print(f"[Vandal] Error: {e}")
     return noticias
@@ -133,7 +146,6 @@ def scrape_timeextension():
             link_tag = article.select_one("a[href]")
             desc_tag = article.select_one("p, .description, .excerpt, .summary")
             date_tag = article.select_one("time, .date, span[class*='date']")
-            img_tag = article.select_one("img[src]")
             if title_tag and link_tag:
                 title = title_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -143,11 +155,7 @@ def scrape_timeextension():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = ""
-                if img_tag:
-                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
-                    if imagen and not imagen.startswith("http"):
-                        imagen = "https://www.timeextension.com" + imagen
+                imagen = find_nearby_image(article)
                 noticias.append({"titulo": title, "url": url, "fuente": "TimeExtension", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
         print(f"[TimeExtension] Error: {e}")
@@ -162,7 +170,6 @@ def scrape_eurogamer():
             title_tag = article.select_one("h2.archive__title a")
             desc_tag = article.select_one("div.archive__strapline")
             date_tag = article.select_one("time.archive__date")
-            img_tag = article.select_one("img[src]")
             if title_tag:
                 title = title_tag.get_text(strip=True)
                 url = title_tag.get("href", "")
@@ -172,11 +179,7 @@ def scrape_eurogamer():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = ""
-                if img_tag:
-                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
-                    if imagen and not imagen.startswith("http"):
-                        imagen = "https://www.eurogamer.es" + imagen
+                imagen = find_nearby_image(article)
                 noticias.append({"titulo": title, "url": url, "fuente": "Eurogamer", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
         print(f"[Eurogamer] Error: {e}")
@@ -192,7 +195,6 @@ def scrape_3djuegos():
             title_tag = article.select_one("h2, h3, .title")
             desc_tag = article.select_one("p, .description, .excerpt")
             date_tag = article.select_one("time, .date, span[class*='date']")
-            img_tag = article.select_one("img[src]")
             if link_tag:
                 title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -202,11 +204,7 @@ def scrape_3djuegos():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = ""
-                if img_tag:
-                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
-                    if imagen and not imagen.startswith("http"):
-                        imagen = "https://www.3djuegos.com" + imagen
+                imagen = find_nearby_image(article)
                 if title and len(title) > 10:
                     noticias.append({"titulo": title, "url": url, "fuente": "3DJuegos", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:
@@ -223,7 +221,6 @@ def scrape_ign():
             title_tag = article.select_one("h2, h3, .title, span")
             desc_tag = article.select_one("p, .description, .excerpt")
             date_tag = article.select_one("time, .date, span[class*='date']")
-            img_tag = article.select_one("img[src]")
             if link_tag:
                 title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
                 url = link_tag.get("href", "")
@@ -233,11 +230,7 @@ def scrape_ign():
                 fecha = ""
                 if date_tag:
                     fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
-                imagen = ""
-                if img_tag:
-                    imagen = img_tag.get("src", "") or img_tag.get("data-src", "")
-                    if imagen and not imagen.startswith("http"):
-                        imagen = "https://latam.ign.com" + imagen
+                imagen = find_nearby_image(article)
                 if title and len(title) > 10:
                     noticias.append({"titulo": title, "url": url, "fuente": "IGN", "resumen": resumen, "fecha": fecha, "imagen": imagen})
     except Exception as e:

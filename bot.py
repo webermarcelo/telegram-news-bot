@@ -569,12 +569,20 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=chat_id, text="Error: datos de Facebook no encontrados.")
             return
 
+        imagen_url = fb_data.get("imagen", "")
+        if not imagen_url:
+            all_news = context.bot_data.get("all_news", {})
+            for nid, n in all_news.items():
+                if n.get("titulo") == fb_data.get("titulo"):
+                    imagen_url = n.get("imagen", "")
+                    break
+
         config = load_config()
         resultado = publicar_en_facebook(
             page_access_token=config["facebook_page_token"],
             page_id=config["facebook_page_id"],
             mensaje=fb_data["texto"],
-            imagen_url=fb_data.get("imagen", ""),
+            imagen_url=imagen_url,
             link_comentario=link_millennials or "",
         )
 

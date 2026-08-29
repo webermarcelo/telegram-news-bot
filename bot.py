@@ -227,12 +227,284 @@ def scrape_ign():
         print(f"[IGN] Error: {e}")
     return noticias
 
+# ==================== SCRAPERS: EFEMERIDES ====================
+
+KEYWORDS_EFEMERIDES = [
+    "cine", "película", "pelicula", "serie", "televisión", "television",
+    "videojuego", "consola", "nintendo", "playstation", "atari", "sega",
+    "disco", "álbum", "album", "canción", "cancion", "banda", "música",
+    "actor", "actriz", "director", "tecnología", "tecnologia",
+    "computadora", "ordenador", "internet", "software", "hardware",
+    "msx", "amiga", "commodore", "amstrad", "spectrum", "dos",
+    "windows", "apple", "macintosh", "sony", "microsoft",
+    "marvel", "dc", "comics", "cómic", "comic", "manga", "anime",
+    "radio", "tv", "canal", "emisora", "programa",
+    "deportes", "fútbol", "futbol", "basket", "tenis", "f1",
+    "olimpiadas", "mundial", "copa",
+    "moda", "tendencia", "moda retro",
+    "juguete", "juguete", "figura", "action figure",
+]
+
+WIKI_HEADERS = {
+    "User-Agent": "MillennialsArBot/1.0 (https://millennials.ar; contact@millennials.ar)",
+    "Accept": "application/json",
+}
+
+def scrape_wikipedia_efemerides():
+    """Busca efemerides del dia en Wikipedia API, filtradas por relevancia cultural"""
+    noticias = []
+    try:
+        from datetime import datetime as dt_now
+        now = dt_now.now()
+        month = f"{now.month:02d}"
+        day = f"{now.day:02d}"
+
+        url = f"https://es.wikipedia.org/api/rest_v1/feed/onthisday/all/{month}/{day}"
+        resp = requests.get(url, headers=WIKI_HEADERS, timeout=15)
+        if resp.status_code != 200:
+            return noticias
+
+        data = resp.json()
+        year_actual = now.year
+
+        eventos = data.get("events", []) + data.get("selected", [])
+
+        for evento in eventos:
+            year = evento.get("year", 0)
+            text = evento.get("text", "")
+
+            if not text or not year:
+                continue
+
+            texto_lower = text.lower()
+            relevante = any(kw in texto_lower for kw in KEYWORDS_EFEMERIDES)
+
+            if not relevante:
+                continue
+
+            diff = year_actual - year
+            if diff < 10:
+                continue
+
+            pages = evento.get("pages", [])
+            wiki_url = ""
+            if pages:
+                wiki_url = pages[0].get("content_urls", {}).get("desktop", {}).get("page", "")
+                if not wiki_url:
+                    wiki_url = f"https://es.wikipedia.org/wiki/{pages[0].get('title', '').replace(' ', '_')}"
+
+            titulo = f"{year}: {text[:80]}"
+            if len(text) > 80:
+                titulo += "..."
+
+            noticias.append({
+                "titulo": titulo,
+                "url": wiki_url or f"https://es.wikipedia.org/api/rest_v1/feed/onthisday/all/{month}/{day}",
+                "fuente": "Wikipedia",
+                "resumen": text,
+                "fecha": f"{year}-01-01",
+                "imagen": "",
+            })
+
+        nacimientos = data.get("births", [])
+        for nac in nacimientos[:10]:
+            year = nac.get("year", 0)
+            text = nac.get("text", "")
+            if not text or not year:
+                continue
+            texto_lower = text.lower()
+            relevante = any(kw in texto_lower for kw in KEYWORDS_EFEMERIDES)
+            if not relevante:
+                continue
+            pages = nac.get("pages", [])
+            wiki_url = ""
+            if pages:
+                wiki_url = pages[0].get("content_urls", {}).get("desktop", {}).get("page", "")
+            titulo = f"Nacimiento {year}: {text[:70]}"
+            noticias.append({
+                "titulo": titulo,
+                "url": wiki_url or "",
+                "fuente": "Wikipedia",
+                "resumen": text,
+                "fecha": f"{year}-01-01",
+                "imagen": "",
+            })
+
+    except Exception as e:
+        print(f"[Wikipedia Efemerides] Error: {e}")
+    return noticias
+
+# ==================== SCRAPERS: CULTURA POP RETRO ====================
+
+def scrape_nostalgiapop():
+    noticias = []
+    try:
+        resp = requests.get("https://www.nostalgiapop.es", headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for article in soup.select("article, .post")[:10]:
+            link_tag = article.select_one("a[href]")
+            title_tag = article.select_one("h2, h3, .entry-title, .post-title")
+            date_tag = article.select_one("time, .entry-date, .post-date")
+            excerpt_tag = article.select_one(".entry-summary, .excerpt, p")
+            if link_tag:
+                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
+                url = link_tag.get("href", "")
+                if not url.startswith("http"):
+                    url = "https://www.nostalgiapop.es" + url
+                resumen = excerpt_tag.get_text(strip=True)[:200] if excerpt_tag else ""
+                fecha = ""
+                if date_tag:
+                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = find_nearby_image(article)
+                if title and len(title) > 5:
+                    noticias.append({"titulo": title, "url": url, "fuente": "NostalgiaPop", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+    except Exception as e:
+        print(f"[NostalgiaPop] Error: {e}")
+    return noticias
+
+def scrape_decada80():
+    noticias = []
+    try:
+        resp = requests.get("https://www.decada80.com", headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for article in soup.select("article, .post, .entry")[:10]:
+            link_tag = article.select_one("a[href]")
+            title_tag = article.select_one("h2, h3, .entry-title, .post-title")
+            date_tag = article.select_one("time, .entry-date, .post-date")
+            excerpt_tag = article.select_one(".entry-summary, .excerpt, p")
+            if link_tag:
+                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
+                url = link_tag.get("href", "")
+                if not url.startswith("http"):
+                    url = "https://www.decada80.com" + url
+                resumen = excerpt_tag.get_text(strip=True)[:200] if excerpt_tag else ""
+                fecha = ""
+                if date_tag:
+                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = find_nearby_image(article)
+                if title and len(title) > 5:
+                    noticias.append({"titulo": title, "url": url, "fuente": "Decada80", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+    except Exception as e:
+        print(f"[Decada80] Error: {e}")
+    return noticias
+
+def scrape_retroconsolas():
+    noticias = []
+    try:
+        resp = requests.get("https://retroconsolas.com", headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for article in soup.select("article, .post, .entry")[:10]:
+            link_tag = article.select_one("a[href]")
+            title_tag = article.select_one("h2, h3, .entry-title, .post-title")
+            date_tag = article.select_one("time, .entry-date, .post-date")
+            excerpt_tag = article.select_one(".entry-summary, .excerpt, p")
+            if link_tag:
+                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
+                url = link_tag.get("href", "")
+                if not url.startswith("http"):
+                    url = "https://retroconsolas.com" + url
+                resumen = excerpt_tag.get_text(strip=True)[:200] if excerpt_tag else ""
+                fecha = ""
+                if date_tag:
+                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = find_nearby_image(article)
+                if title and len(title) > 5:
+                    noticias.append({"titulo": title, "url": url, "fuente": "RetroConsolas", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+    except Exception as e:
+        print(f"[RetroConsolas] Error: {e}")
+    return noticias
+
+def scrape_pulsayjuega():
+    noticias = []
+    try:
+        resp = requests.get("https://pulsayjuega.blog", headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for article in soup.select("article, .post, .entry")[:10]:
+            link_tag = article.select_one("a[href]")
+            title_tag = article.select_one("h2, h3, .entry-title, .post-title")
+            date_tag = article.select_one("time, .entry-date, .post-date")
+            excerpt_tag = article.select_one(".entry-summary, .excerpt, p")
+            if link_tag:
+                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
+                url = link_tag.get("href", "")
+                if not url.startswith("http"):
+                    url = "https://pulsayjuega.blog" + url
+                resumen = excerpt_tag.get_text(strip=True)[:200] if excerpt_tag else ""
+                fecha = ""
+                if date_tag:
+                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = find_nearby_image(article)
+                if title and len(title) > 5:
+                    noticias.append({"titulo": title, "url": url, "fuente": "Pulsa y Juega", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+    except Exception as e:
+        print(f"[Pulsa y Juega] Error: {e}")
+    return noticias
+
+def scrape_rebobina80():
+    noticias = []
+    try:
+        resp = requests.get("https://rebobinalos80.com", headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for article in soup.select("article, .post, .entry")[:10]:
+            link_tag = article.select_one("a[href]")
+            title_tag = article.select_one("h2, h3, .entry-title, .post-title")
+            date_tag = article.select_one("time, .entry-date, .post-date")
+            excerpt_tag = article.select_one(".entry-summary, .excerpt, p")
+            if link_tag:
+                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
+                url = link_tag.get("href", "")
+                if not url.startswith("http"):
+                    url = "https://rebobinalos80.com" + url
+                resumen = excerpt_tag.get_text(strip=True)[:200] if excerpt_tag else ""
+                fecha = ""
+                if date_tag:
+                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = find_nearby_image(article)
+                if title and len(title) > 5:
+                    noticias.append({"titulo": title, "url": url, "fuente": "Rebobina los 80", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+    except Exception as e:
+        print(f"[Rebobina los 80] Error: {e}")
+    return noticias
+
+def scrape_elnostalgico():
+    noticias = []
+    try:
+        resp = requests.get("https://www.elnostalgico.com", headers=HEADERS, timeout=15)
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for article in soup.select("article, .post, .entry")[:10]:
+            link_tag = article.select_one("a[href]")
+            title_tag = article.select_one("h2, h3, .entry-title, .post-title")
+            date_tag = article.select_one("time, .entry-date, .post-date")
+            excerpt_tag = article.select_one(".entry-summary, .excerpt, p")
+            if link_tag:
+                title = title_tag.get_text(strip=True) if title_tag else link_tag.get_text(strip=True)
+                url = link_tag.get("href", "")
+                if not url.startswith("http"):
+                    url = "https://www.elnostalgico.com" + url
+                resumen = excerpt_tag.get_text(strip=True)[:200] if excerpt_tag else ""
+                fecha = ""
+                if date_tag:
+                    fecha = date_tag.get("datetime", "") or date_tag.get_text(strip=True)
+                imagen = find_nearby_image(article)
+                if title and len(title) > 5:
+                    noticias.append({"titulo": title, "url": url, "fuente": "El Nostalgico", "resumen": resumen, "fecha": fecha, "imagen": imagen})
+    except Exception as e:
+        print(f"[El Nostalgico] Error: {e}")
+    return noticias
+
 SCRAPERS = {
     "Vandal": scrape_vandal,
     "Eurogamer": scrape_eurogamer,
     "3DJuegos": scrape_3djuegos,
     "IGN": scrape_ign,
     "TierraGamer": scrape_tierragamer,
+    "Wikipedia Efemerides": scrape_wikipedia_efemerides,
+    "NostalgiaPop": scrape_nostalgiapop,
+    "Decada80": scrape_decada80,
+    "RetroConsolas": scrape_retroconsolas,
+    "Pulsa y Juega": scrape_pulsayjuega,
+    "Rebobina los 80": scrape_rebobina80,
+    "El Nostalgico": scrape_elnostalgico,
 }
 
 # ==================== HANDLERS DEL BOT ====================

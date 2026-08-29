@@ -258,6 +258,7 @@ def scrape_wikipedia_efemerides():
         now = dt_now.now()
         month = f"{now.month:02d}"
         day = f"{now.day:02d}"
+        fecha_hoy = now.strftime("%Y-%m-%d")
 
         url = f"https://es.wikipedia.org/api/rest_v1/feed/onthisday/all/{month}/{day}"
         resp = requests.get(url, headers=WIKI_HEADERS, timeout=15)
@@ -302,7 +303,7 @@ def scrape_wikipedia_efemerides():
                 "url": wiki_url or f"https://es.wikipedia.org/api/rest_v1/feed/onthisday/all/{month}/{day}",
                 "fuente": "Wikipedia",
                 "resumen": text,
-                "fecha": f"{year}-01-01",
+                "fecha": fecha_hoy,
                 "imagen": "",
             })
 
@@ -326,7 +327,7 @@ def scrape_wikipedia_efemerides():
                 "url": wiki_url or "",
                 "fuente": "Wikipedia",
                 "resumen": text,
-                "fecha": f"{year}-01-01",
+                "fecha": fecha_hoy,
                 "imagen": "",
             })
 
